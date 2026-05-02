@@ -10,9 +10,22 @@ public class PagamentoListener {
 
     @RabbitListener(queues = "pagamento.concluido")
     public void recebeMensagem(
-            Message message
+            PagamentoDto pagamento
     ) {
-        System.out.printf("Recebendo mensagem: %s%n", message.toString());
+        String mensagem = """
+                Dados do pagamento: %s
+                Nome: %s
+                Número do pedido: %s
+                Valor R$: %s
+                Status: %s 
+                """.formatted(pagamento.getId(),
+                pagamento.getNome(),
+                pagamento.getPedidoId(),
+                pagamento.getValor(),
+                pagamento.getStatus());
+
+        System.out.println("Recebi a mensagem " + mensagem.toString());
+
     }
 
 }
