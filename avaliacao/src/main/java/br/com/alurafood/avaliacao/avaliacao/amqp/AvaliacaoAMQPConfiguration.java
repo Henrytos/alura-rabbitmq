@@ -1,6 +1,11 @@
-package br.com.alurafood.pedidos.amqp;
+package br.com.alurafood.avaliacao.avaliacao.amqp;
 
-import org.springframework.amqp.core.*;
+import org.springframework.amqp.core.Binding;
+import org.springframework.amqp.core.BindingBuilder;
+import org.springframework.amqp.core.ExchangeBuilder;
+import org.springframework.amqp.core.FanoutExchange;
+import org.springframework.amqp.core.Queue;
+import org.springframework.amqp.core.QueueBuilder;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitAdmin;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -9,10 +14,9 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.event.EventListener;
 
 @Configuration
-public class PedidosAmqpConfiguration {
+public class AvaliacaoAMQPConfiguration {
 
     @Bean
     public Jackson2JsonMessageConverter messageConverter() {
@@ -21,17 +25,19 @@ public class PedidosAmqpConfiguration {
 
     @Bean
     public RabbitTemplate rabbitTemplate(
-            ConnectionFactory conn,
-            Jackson2JsonMessageConverter messageConverter
+            ConnectionFactory connectionFactory
     ) {
-        RabbitTemplate rabbitTemplate = new RabbitTemplate(conn);
-        rabbitTemplate.setMessageConverter(messageConverter);
+        RabbitTemplate template = new RabbitTemplate(
+                connectionFactory
+        );
 
-        return rabbitTemplate;
+        template.setMessageConverter(messageConverter());
+
+        return template;
     }
 
     @Bean
-    public RabbitAdmin criarRabbitAdmin(ConnectionFactory connectionFactory) {
+    public RabbitAdmin admin(ConnectionFactory connectionFactory) {
         return new RabbitAdmin(connectionFactory);
     }
 
@@ -41,23 +47,20 @@ public class PedidosAmqpConfiguration {
     }
 
     @Bean
-    public Queue pagamentoConcluido() {
-        return QueueBuilder.nonDurable("pagamentos.detalhes-pedido").build();
+    public Queue filaAvaliacao() {
+        return QueueBuilder.nonDurable("pagamentos.avaliacao-pedido").build();
     }
 
     @Bean
-    public FanoutExchange pagamentoEx() {
+    public FanoutExchange fanoutExchange() {
         return ExchangeBuilder
                 .fanoutExchange("pagamento.ex")
                 .build();
     }
 
     @Bean
-    public Binding bindPagamentoParaPedido(
-            FanoutExchange fanoutExchange
-    ) {
-        return BindingBuilder
-                .bind(pagamentoConcluido())
-                .to(fanoutExchange);
+    public Binding bindPagamentoAvaliacao() {
+        return BindingBuilder.bind(filaAvaliacao())
+                .to(fanoutExchange());
     }
 }
