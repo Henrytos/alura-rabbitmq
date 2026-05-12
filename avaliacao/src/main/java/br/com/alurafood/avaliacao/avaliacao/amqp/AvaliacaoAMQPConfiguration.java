@@ -25,11 +25,9 @@ public class AvaliacaoAMQPConfiguration {
 
     @Bean
     public RabbitTemplate rabbitTemplate(
-            ConnectionFactory connectionFactory
-    ) {
+            ConnectionFactory connectionFactory) {
         RabbitTemplate template = new RabbitTemplate(
-                connectionFactory
-        );
+                connectionFactory);
 
         template.setMessageConverter(messageConverter());
 
@@ -47,20 +45,40 @@ public class AvaliacaoAMQPConfiguration {
     }
 
     @Bean
-    public Queue filaAvaliacao() {
-        return QueueBuilder.nonDurable("pagamentos.avaliacao-pedido").build();
+    Queue filaDetalhesAvaliacao() {
+        return QueueBuilder.nonDurable("pagamentos.avaliacao-pedido")
+                .deadLetterExchange("pagamento.dlx")
+                .build();
     }
 
     @Bean
-    public FanoutExchange fanoutExchange() {
+    FanoutExchange fanoutExchangePagamento() {
         return ExchangeBuilder
                 .fanoutExchange("pagamento.ex")
                 .build();
     }
 
     @Bean
-    public Binding bindPagamentoAvaliacao() {
-        return BindingBuilder.bind(filaAvaliacao())
-                .to(fanoutExchange());
+    Queue criarDlqFilaAvaliacao() {
+        return QueueBuilder.nonDurable("pagamentos.avaliacao-pedido-dlq").build();
+    }
+
+    @Bean
+    FanoutExchange fanoutDLXExchangePagamento() {
+        return ExchangeBuilder
+                .fanoutExchange("pagamento.dlx")
+                .build();
+    }
+
+    @Bean
+    Binding bindPagamentoAvaliacao() {
+        return BindingBuilder.bind(filaDetalhesAvaliacao())
+                .to(fanoutExchangePagamento());
+    }
+
+    @Bean
+    Binding bindPagamentoDlq() {
+        return BindingBuilder.bind(criarDlqFilaAvaliacao())
+                .to(fanoutDLXExchangePagamento());
     }
 }
